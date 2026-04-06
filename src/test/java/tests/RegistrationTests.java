@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static specs.login.LoginSpec.wrongCredentialLoginResponseSpec;
+import static specs.registation.RegistrationSpec.*;
 
 public class RegistrationTests extends TestBase {
 
@@ -32,23 +34,14 @@ public class RegistrationTests extends TestBase {
 
         RegistrationBodyModel registrationData = new RegistrationBodyModel(username, password);
 
-        SuccessfulRegistrationResponseModel registrationResponse = given()
-                .log().all()
-                .contentType(JSON)
+        SuccessfulRegistrationResponseModel registrationResponse = given(registrationRequestSpec)
                 .body(registrationData)
-                .basePath("/api/v1")
                 .when()
                 .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(201)
-                .body(matchesJsonSchemaInClasspath("schemas/registration/success_registration_response_schema.json"))
-                .body("id", notNullValue())
-                .body("username", notNullValue())
-                .body("remoteAddr", notNullValue())
-                .extract()
-                .as(SuccessfulRegistrationResponseModel.class);
-
+                .spec(successfulRegistrationResponseSpec)
+                .extract().
+                as(SuccessfulRegistrationResponseModel.class);
 
         assertThat(registrationResponse.id()).isGreaterThan(0);
         assertThat(registrationResponse.username()).isEqualTo(username);
@@ -87,37 +80,23 @@ public class RegistrationTests extends TestBase {
 
         RegistrationBodyModel registrationData = new RegistrationBodyModel(username, password);
 
-        SuccessfulRegistrationResponseModel firstregistrationResponse = given()
-                .log().all()
-                .contentType(JSON)
+        SuccessfulRegistrationResponseModel firstregistrationResponse = given(registrationRequestSpec)
                 .body(registrationData)
-                .basePath("/api/v1")
                 .when()
                 .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(201)
-                .body(matchesJsonSchemaInClasspath("schemas/registration/success_registration_response_schema.json"))
-                .body("id", notNullValue())
-                .body("username", notNullValue())
-                .body("remoteAddr", notNullValue())
+                .spec(successfulRegistrationResponseSpec)
                 .extract()
                 .as(SuccessfulRegistrationResponseModel.class);
 
         assertThat(firstregistrationResponse.username()).isEqualTo(username);
 
-        ExistingUserResponseModel secondregistrationResponse = given()
-                .log().all()
-                .contentType(JSON)
+        ExistingUserResponseModel secondregistrationResponse = given(registrationRequestSpec)
                 .body(registrationData)
-                .basePath("/api/v1")
                 .when()
                 .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(400)
-                .body(matchesJsonSchemaInClasspath("schemas/registration/existing_user_registration_response_schema.json"))
-                .body("username", notNullValue())
+                .spec(existingUserRegistrationResponseSpec)
                 .extract()
                 .as(ExistingUserResponseModel.class);
 
@@ -139,13 +118,13 @@ public class RegistrationTests extends TestBase {
                 .when()
                 .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(415)
+                .spec(unsupportedMediaTypeResponseSpec)
                 .extract()
                 .as(UnsupportedMediaTypeResponseModel.class);
 
         String expectedError = "Unsupported media type \"text/plain; charset=ISO-8859-1\" in request.";
-        assertEquals(expectedError, registrationResponse.detail());
+        String actualError = registrationResponse.detail();
+        assertThat(actualError).isEqualTo(expectedError);
     }
 
     @Test
@@ -157,21 +136,18 @@ public class RegistrationTests extends TestBase {
 
         RegistrationBodyModel registrationData = new RegistrationBodyModel(username, password);
 
-        InvalidUserNameResponseModel registrationResponse = given()
-                .log().all()
-                .contentType(JSON)
+        InvalidUserNameResponseModel registrationResponse = given(registrationRequestSpec)
                 .body(registrationData)
-                .basePath("/api/v1")
                 .when()
                 .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(400)
+                .spec(invalidUserNameRegistrationResponseSpec)
                 .extract()
                 .as(InvalidUserNameResponseModel.class);
 
         String expectedError = "Enter a valid username. This value may contain only letters, numbers, and @/./+/-/_ characters.";
-        assertEquals(expectedError, registrationResponse.username().get(0));
+        String actualError = registrationResponse.username().get(0);
+        assertThat(actualError).isEqualTo(expectedError);
     }
 
     @Test
@@ -180,21 +156,19 @@ public class RegistrationTests extends TestBase {
 
         RegistrationBodyModel registrationData = new RegistrationBodyModel("", password);
 
-        FieldRequiredResponseModel registrationResponse = given()
-                .log().all()
-                .contentType(JSON)
+        FieldRequiredResponseModel registrationResponse = given(registrationRequestSpec)
                 .body(registrationData)
-                .basePath("/api/v1")
                 .when()
                 .post("/users/register/")
                 .then()
-                .log().all()
-                .statusCode(400)
+                .spec(emptyUsernameFielRegistrationResponseSpec)
                 .extract()
                 .as(FieldRequiredResponseModel.class);
 
         String expectedError = "This field may not be blank.";
-        assertEquals(expectedError, registrationResponse.username().get(0));
+        String actualError = registrationResponse.username().get(0);
+        assertThat(actualError).isEqualTo(expectedError);
+
     }
 }
 
